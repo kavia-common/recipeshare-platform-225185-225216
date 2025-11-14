@@ -6,12 +6,18 @@ const { z } = require('zod');
 const prismaTs = require('../lib/prisma.ts'); // TypeScript default export transpiles to JS module default
 const { uploadImageBuffer } = require('../lib/cloudinary');
 const { authenticate, requireOwnership } = require('../middleware/auth');
+const { supabaseAuthenticate } = require('../middleware/supabaseAuth');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 // Prisma client from TS default export
 const prisma = prismaTs && prismaTs.default ? prismaTs.default : prismaTs;
+
+// Decide auth chain for protected routes.
+// supabaseAuthenticate will no-op if SUPABASE_URL/SUPABASE_SERVICE_KEY are not set,
+// allowing fallback authenticate to handle dev/NextAuth tokens.
+const protectedAuth = [supabaseAuthenticate, authenticate];
 
 // Schemas
 const difficultyEnum = z.enum(['EASY', 'MEDIUM', 'HARD']);
@@ -73,7 +79,7 @@ async function loadRecipe(req, res, next) {
  */
 router.post(
   '/api/recipes',
-  authenticate,
+  ...protectedAuth,
   upload.single('image'),
   async (req, res) => {
     try {
@@ -125,7 +131,7 @@ router.post(
  */
 router.patch(
   '/api/recipes/:id',
-  authenticate,
+  ...protectedAuth,
   loadRecipe,
   requireOwnership,
   upload.single('image'),
@@ -178,7 +184,7 @@ router.patch(
  */
 router.delete(
   '/api/recipes/:id',
-  authenticate,
+  ...protectedAuth,
   loadRecipe,
   requireOwnership,
   async (req, res) => {
@@ -199,7 +205,7 @@ router.delete(
  *     summary: Mark recipe as favorite for current user
  *     tags: [Favorites]
  */
-router.post('/api/recipes/:id/favorite', authenticate, async (req, res) => {
+router.post('/api/recipes/:id/favorite', ...protectedAuth, async (req, res) => {
   try {
     const recipe = await prisma.recipe.findUnique({ where: { id: req.params.id } });
     if (!recipe) return res.status(404).json({ error: 'Recipe not found' });
@@ -223,7 +229,7 @@ router.post('/api/recipes/:id/favorite', authenticate, async (req, res) => {
  *     summary: Remove recipe from favorites for current user
  *     tags: [Favorites]
  */
-router.post('/api/recipes/:id/unfavorite', authenticate, async (req, res) => {
+router.post('/api/recipes/:id/unfavorite', ...protectedAuth, async (req, res) => {
   try {
     await prisma.favorite.delete({
       where: { userId_recipeId: { userId: req.user.id, recipeId: req.params.id } },
