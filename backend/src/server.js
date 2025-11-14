@@ -28,7 +28,9 @@ app.get(healthPath, (req, res) => {
 });
 
 const server = app.listen(PORT, HOST, () => {
-  console.log(`Server running at http://${HOST}:${PORT} (health: ${healthPath})`);
+  const urlHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
+  console.log(`[startup] Express server ready at http://${urlHost}:${PORT}`);
+  console.log(`[startup] Healthcheck: http://${urlHost}:${PORT}${healthPath}`);
 });
 
 // Graceful shutdown
