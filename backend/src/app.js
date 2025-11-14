@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const cors = require('cors');
 const healthController = require('./controllers/health');
 
 console.log('[startup] Loading app.js...');
@@ -54,6 +55,18 @@ app.get('/livez', (req, res) => {
 });
 
 // Core middlewares (registered AFTER health routes)
+const FRONTEND_ORIGIN =
+  process.env.FRONTEND_URL ||
+  process.env.REACT_APP_FRONTEND_URL ||
+  'http://localhost:3000';
+
+app.use(
+  cors({
+    origin: FRONTEND_ORIGIN,
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 // Mount consolidated routes (includes other API endpoints)

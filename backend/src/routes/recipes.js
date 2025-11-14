@@ -3,16 +3,13 @@
 const express = require('express');
 const multer = require('multer');
 const { z } = require('zod');
-const prismaTs = require('../lib/prisma.js'); // CommonJS export of Prisma client singleton
-const { uploadImageBuffer } = require('../lib/cloudinary');
+const prisma = require('../lib/prisma'); // JS prisma shim singleton
+const { uploadImageBuffer, isCloudinaryConfigured } = require('../lib/cloudinary');
 const { authenticate, requireOwnership } = require('../middleware/auth');
 const { supabaseAuthenticate } = require('../middleware/supabaseAuth');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
-
-// Prisma client from TS default export (lazy, no network at import)
-const prisma = prismaTs && prismaTs.default ? prismaTs.default : prismaTs;
 
 // Decide auth chain for protected routes.
 // supabaseAuthenticate will no-op if SUPABASE_URL/SUPABASE_SERVICE_KEY are not set,
@@ -41,6 +38,8 @@ const createRecipeSchema = z.object({
   cookTime: z.coerce.number().int().min(0).max(1440),
   servings: z.coerce.number().int().min(1).max(100),
   difficulty: difficultyEnum,
+  // When Cloudinary is disabled, allow direct imageUrl
+  imageUrl: z.string().url().optional(),
 });
 
 const patchRecipeSchema = createRecipeSchema.partial();
@@ -65,7 +64,7 @@ async function loadRecipe(req, res, next) {
     if (!recipe) return res.status(404).json({ error: 'Recipe not found' });
     req.recipe = recipe;
     return next();
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Failed to load recipe' });
   }
 }
@@ -119,10 +118,39 @@ router.post(
       if (!parsed.success) {
         return res.status(400).json({ error: 'Validation error', issues: parsed.error.issues.map(i => i.message) });
       }
-      if (!req.file) {
-        return res.status(400).json({ error: 'Image is required' });
+
+      const cloudEnabled = isCloudinaryConfigured();
+      let imageUrl = parsed.data.imageUrl;
+
+      if (cloudEnabled) {
+        // Cloudinary enabled -> require file
+        if (!req.file) {
+          return res.status(400).json({
+            error: 'Image file required',
+            hint: 'Send multipart/form-data with field "image" when Cloudinary is configured.',
+          });
+        }
+        imageUrl = await uploadImageBuffer(req.file.buffer, req.file.originalname || 'recipe.jpg');
+      } else {
+        // Cloudinary disabled -> allow direct imageUrl
+        if (!imageUrl && !req.file) {
+          return res.status(400).json({
+            error: 'Image is required',
+            hint:
+              'Provide "imageUrl" in the request body when Cloudinary is not configured, ' +
+              'or configure Cloudinary envs to upload a file via "image".',
+            missingEnvs: ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'],
+          });
+        }
+        // If a file was sent anyway but Cloudinary not configured, reject clearly
+        if (req.file && !cloudEnabled) {
+          return res.status(400).json({
+            error: 'Image upload unavailable',
+            hint:
+              'Cloudinary not configured. Set CLOUDINARY_* envs or omit file and send "imageUrl" instead.',
+          });
+        }
       }
-      const imageUrl = await uploadImageBuffer(req.file.buffer, req.file.originalname || 'recipe.jpg');
 
       const data = parsed.data;
       const created = await prisma.recipe.create({
@@ -135,13 +163,13 @@ router.post(
           cookTime: data.cookTime,
           servings: data.servings,
           difficulty: data.difficulty,
-          imageUrl,
+          imageUrl: imageUrl,
           authorId: req.user.id,
         },
       });
 
       return res.status(201).json({ recipe: created });
-    } catch (err) {
+    } catch (_err) {
       // Avoid leaking internal errors
       return res.status(500).json({ error: 'Failed to create recipe' });
     }
@@ -173,8 +201,18 @@ router.patch(
         return res.status(400).json({ error: 'Validation error', issues: parsed.error.issues.map(i => i.message) });
       }
 
+      const cloudEnabled = isCloudinaryConfigured();
       let imageUrl;
+
       if (req.file) {
+        if (!cloudEnabled) {
+          return res.status(400).json({
+            error: 'Image upload unavailable',
+            hint:
+              'Cloudinary not configured. Set CLOUDINARY_* envs to upload a file, ' +
+              'or omit file and patch "imageUrl" directly.',
+          });
+        }
         imageUrl = await uploadImageBuffer(req.file.buffer, req.file.originalname || 'recipe.jpg');
       }
 
@@ -190,12 +228,13 @@ router.patch(
           ...(data.cookTime !== undefined ? { cookTime: data.cookTime } : {}),
           ...(data.servings !== undefined ? { servings: data.servings } : {}),
           ...(data.difficulty !== undefined ? { difficulty: data.difficulty } : {}),
+          ...(data.imageUrl !== undefined && !req.file ? { imageUrl: data.imageUrl } : {}),
           ...(imageUrl ? { imageUrl } : {}),
         },
       });
 
       return res.status(200).json({ recipe: updated });
-    } catch (err) {
+    } catch (_err) {
       return res.status(500).json({ error: 'Failed to update recipe' });
     }
   }
@@ -218,7 +257,7 @@ router.delete(
       await prisma.favorite.deleteMany({ where: { recipeId: req.params.id } });
       await prisma.recipe.delete({ where: { id: req.params.id } });
       return res.status(204).send();
-    } catch (err) {
+    } catch (_err) {
       return res.status(500).json({ error: 'Failed to delete recipe' });
     }
   }
@@ -243,7 +282,7 @@ router.post('/api/recipes/:id/favorite', ...protectedAuth, async (req, res) => {
     });
 
     return res.status(200).json({ favorite: fav });
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Failed to favorite recipe' });
   }
 });
@@ -261,7 +300,7 @@ router.post('/api/recipes/:id/unfavorite', ...protectedAuth, async (req, res) =>
       where: { userId_recipeId: { userId: req.user.id, recipeId: req.params.id } },
     }).catch(() => null);
     return res.status(200).json({ success: true });
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Failed to unfavorite recipe' });
   }
 });
@@ -312,7 +351,7 @@ router.get('/api/recipes/search', async (req, res) => {
       take,
       skip,
     });
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Search failed' });
   }
 });
