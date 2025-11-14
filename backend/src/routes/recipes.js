@@ -11,7 +11,7 @@ const { supabaseAuthenticate } = require('../middleware/supabaseAuth');
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
-// Prisma client from TS default export
+// Prisma client from TS default export (lazy, no network at import)
 const prisma = prismaTs && prismaTs.default ? prismaTs.default : prismaTs;
 
 // Decide auth chain for protected routes.
@@ -69,6 +69,32 @@ async function loadRecipe(req, res, next) {
     return res.status(500).json({ error: 'Failed to load recipe' });
   }
 }
+
+/**
+ * PUBLIC_INTERFACE
+ * GET /api/recipes
+ * Public list endpoint for quick verification. Returns recent recipes with minimal fields.
+ */
+router.get('/api/recipes', async (req, res) => {
+  try {
+    const take = Math.min(parseInt(String(req.query.take || '20'), 10), 50);
+    const items = await prisma.recipe.findMany({
+      orderBy: { createdAt: 'desc' },
+      take,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        imageUrl: true,
+        createdAt: true,
+        author: { select: { id: true, name: true } },
+      },
+    });
+    return res.status(200).json({ items, take });
+  } catch (_e) {
+    return res.status(500).json({ error: 'Failed to load recipes' });
+  }
+});
 
 /**
  * @swagger

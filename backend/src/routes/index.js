@@ -1,8 +1,8 @@
 const express = require('express');
 const healthController = require('../controllers/health');
 
-// NOTE: recipes router intentionally not required during startup isolation.
-// const recipesRouter = require('./recipes');
+// Import recipes router (uses lazy Prisma and protected auth where configured)
+const recipesRouter = require('./recipes');
 
 const router = express.Router();
 
@@ -37,7 +37,11 @@ router.get('/', healthController.check.bind(healthController));
 const healthPath = process.env.REACT_APP_HEALTHCHECK_PATH || '/health';
 router.get(healthPath, healthController.check.bind(healthController));
 
-// Temporarily bypass recipes mount to isolate startup issues
-// router.use(recipesRouter);
+/**
+ * PUBLIC_INTERFACE
+ * Mount recipes routes under root so they expose /api/recipes endpoints.
+ * Includes a public GET /api/recipes for verification.
+ */
+router.use(recipesRouter);
 
 module.exports = router;
