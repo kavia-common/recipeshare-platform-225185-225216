@@ -6,31 +6,45 @@ const healthController = require('./controllers/health');
 console.log('[startup] Loading app.js...');
 const app = express();
 
-// Core middlewares
+/**
+ * Register synchronous, dependency-free health routes FIRST (no middleware).
+ * These routes must not rely on async services or any external dependency to respond.
+ */
+// PUBLIC_INTERFACE
+app.get('/', (req, res) => {
+  // Synchronous, immediate OK response
+  return res.status(200).json({
+    status: 'ok',
+    message: 'Service is healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+  });
+});
+
+// PUBLIC_INTERFACE
+app.get('/health', (req, res) => {
+  return res.status(200).json({
+    status: 'ok',
+    message: 'Service is healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+  });
+});
+
+// PUBLIC_INTERFACE
+app.get('/api/health', (req, res) => {
+  return res.status(200).json({
+    status: 'ok',
+    message: 'Service is healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+  });
+});
+
+// Core middlewares (registered AFTER health routes)
 app.use(express.json());
 
-/**
- * PUBLIC_INTERFACE
- * GET /
- * Fast root ping returning JSON health for startup verification.
- */
-app.get('/', healthController.check.bind(healthController));
-
-/**
- * PUBLIC_INTERFACE
- * GET /health
- * Fast JSON health endpoint for platform checks.
- */
-app.get('/health', healthController.check.bind(healthController));
-
-/**
- * PUBLIC_INTERFACE
- * GET /api/health
- * Ensure standardized JSON health is also available at /api/health.
- */
-app.get('/api/health', healthController.check.bind(healthController));
-
-// Mount consolidated routes (includes JSON health and recipes)
+// Mount consolidated routes (includes other API endpoints)
 const routes = require('./routes');
 app.use('/', routes);
 

@@ -7,42 +7,13 @@ const recipesRouter = require('./recipes');
 const router = express.Router();
 
 /**
- * @swagger
- * /:
- *   get:
- *     summary: Health endpoint
- *     responses:
- *       200:
- *         description: Service health check passed
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: ok
- *                 message:
- *                   type: string
- *                   example: Service is healthy
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- *                 environment:
- *                   type: string
- *                   example: development
+ * Keep routes here for non-health endpoints only.
+ * Health routes are already registered directly in app.js before any middleware.
  */
+
+// Example: in-router health fallback if needed by docs
 router.get('/', healthController.check.bind(healthController));
-
-// Maintain compatibility with env-configurable health path
-const healthPath = process.env.REACT_APP_HEALTHCHECK_PATH || '/health';
-router.get(healthPath, healthController.check.bind(healthController));
-
-/**
- * PUBLIC_INTERFACE
- * GET /api/health
- * Standard JSON health endpoint for container readiness checks.
- */
+router.get('/health', healthController.check.bind(healthController));
 router.get('/api/health', healthController.check.bind(healthController));
 
 /**

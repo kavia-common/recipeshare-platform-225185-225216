@@ -21,7 +21,9 @@ Scripts:
 - npm run test:supabase
 
 Notes:
-- The Express app keeps minimal health routes (/, /health) to ensure port readiness.
+- Health readiness: Express registers synchronous health routes first at '/', '/health', and '/api/health' that return 200 JSON immediately without using middleware or async dependencies.
+- Server binding: By default listens on 0.0.0.0:3001 unless PORT is provided. Start via `npm start` (package.json -> node src/server.js).
+- Avoid using frontend-style env names (REACT_APP_*) in backend code. Health paths are fixed and not controlled by such envs.
 - Recipes router uses Prisma and Cloudinary. Protected routes are guarded by Supabase Auth when configured, otherwise fallback auth applies.
 - The NextAuth route handlers are scaffolded for future Next.js integration and won't be served by Express directly.
 - The signup route is implemented using Next.js App Router style for parity; integrate with your Next.js app or port into Express routes if keeping pure Express.
