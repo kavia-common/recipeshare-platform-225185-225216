@@ -14,6 +14,18 @@ const server = app.listen(PORT, HOST, () => {
   console.log('[startup] Bind successful.');
 });
 
+// Handle unexpected errors to avoid silent failures
+process.on('unhandledRejection', (reason) => {
+  console.error('[fatal] Unhandled Promise Rejection:', reason);
+  // Exit to allow container orchestrator to restart
+  process.exit(1);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[fatal] Uncaught Exception:', err?.stack || err);
+  process.exit(1);
+});
+
 process.on('SIGTERM', () => {
   console.log('[shutdown] SIGTERM received: closing HTTP server');
   server?.close(() => {

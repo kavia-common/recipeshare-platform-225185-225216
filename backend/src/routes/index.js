@@ -34,8 +34,16 @@ const router = express.Router();
  */
 router.get('/', healthController.check.bind(healthController));
 
+// Maintain compatibility with env-configurable health path
 const healthPath = process.env.REACT_APP_HEALTHCHECK_PATH || '/health';
 router.get(healthPath, healthController.check.bind(healthController));
+
+/**
+ * PUBLIC_INTERFACE
+ * GET /api/health
+ * Standard JSON health endpoint for container readiness checks.
+ */
+router.get('/api/health', healthController.check.bind(healthController));
 
 /**
  * PUBLIC_INTERFACE
