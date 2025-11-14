@@ -31,6 +31,7 @@ const server = app.listen(PORT, HOST, () => {
   const urlHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
   console.log(`[startup] Express server ready at http://${urlHost}:${PORT}`);
   console.log(`[startup] Healthcheck: http://${urlHost}:${PORT}${healthPath}`);
+  console.log(`[startup] Routes registered and server is listening on ${HOST}:${PORT}`);
 });
 
 // Graceful shutdown

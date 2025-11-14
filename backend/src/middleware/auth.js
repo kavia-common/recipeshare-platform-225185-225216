@@ -7,18 +7,26 @@ const jwt = require('jsonwebtoken');
  * authenticate
  * Express middleware that extracts the current user from an Authorization: Bearer <jwt> header.
  * This is a placeholder compatible with NextAuth JWT where token contains id, email, name.
- * If no valid token is provided, responds with 401.
+ * If no valid token is provided, responds with 401 in production; in development without NEXTAUTH_SECRET it no-ops.
  */
 function authenticate(req, res, next) {
+  const secret = process.env.NEXTAUTH_SECRET;
+  const isDev = (process.env.NODE_ENV || 'development') === 'development';
+
+  // In development, if secret not set, bypass auth to avoid startup blockers and allow local testing.
+  if (!secret && isDev) {
+    req.user = req.user || { id: 'dev-user', email: 'dev@example.com', name: 'Dev User' };
+    return next();
+  }
+
   try {
     const authHeader = req.headers.authorization || '';
     const [scheme, token] = authHeader.split(' ');
     if (scheme !== 'Bearer' || !token) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    // NOTE: Uses NEXTAUTH_SECRET to verify JWT token. Configure env accordingly.
-    const secret = process.env.NEXTAUTH_SECRET;
     if (!secret) {
+      // In non-dev, missing secret is a server misconfiguration
       return res.status(500).json({ error: 'Server auth misconfiguration' });
     }
     const decoded = jwt.verify(token, secret);

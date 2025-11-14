@@ -42,10 +42,35 @@ app.use('/docs', swaggerUi.serve, (req, res, next) => {
   swaggerUi.setup(dynamicSpec)(req, res, next);
 });
 
+/**
+ * PUBLIC_INTERFACE
+ * Root route handler - always 200 OK.
+ */
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'FlavorFolio backend root',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Parse JSON request body
 app.use(express.json());
 
-// Mount routes
+/**
+ * PUBLIC_INTERFACE
+ * Health route - always 200 OK.
+ */
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'Service is healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+  });
+});
+
+// Mount routes before any fallback handlers
 app.use('/', routes);
 
 // Error handling middleware
