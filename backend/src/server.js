@@ -1,19 +1,43 @@
+require('dotenv').config(); // Load environment variables from .env
+
 const app = require('./app');
 
-const PORT = process.env.PORT || 3000;
+// Determine port preference:
+// - Prefer REACT_APP_PORT if provided (used by environment)
+// - Fallback to PORT
+// - Default to 3001 per container contract
+const preferredPort = parseInt(process.env.REACT_APP_PORT || '', 10);
+const envPort = parseInt(process.env.PORT || '', 10);
+const PORT = Number.isFinite(preferredPort)
+  ? preferredPort
+  : Number.isFinite(envPort)
+    ? envPort
+    : 3001;
+
 const HOST = process.env.HOST || '0.0.0.0';
 
-const server = app.listen(PORT, HOST, () => {
-  console.log(`Server running at http://${HOST}:${PORT}`);
+// Ensure a healthcheck route exists and responds 200
+const healthPath = process.env.REACT_APP_HEALTHCHECK_PATH || '/health';
+app.get(healthPath, (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'Service is healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+  });
 });
 
-  // Graceful shutdown
-  process.on('SIGTERM', () => {
-    console.log('SIGTERM signal received: closing HTTP server');
-    server.close(() => {
-      console.log('HTTP server closed');
-      process.exit(0);
-    });
+const server = app.listen(PORT, HOST, () => {
+  console.log(`Server running at http://${HOST}:${PORT} (health: ${healthPath})`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+    process.exit(0);
   });
+});
 
 module.exports = server;

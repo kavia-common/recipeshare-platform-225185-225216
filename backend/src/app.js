@@ -1,3 +1,5 @@
+require('dotenv').config(); // Ensure env variables are loaded for anything using process.env
+
 const cors = require('cors');
 const express = require('express');
 const routes = require('./routes');
@@ -13,9 +15,11 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.set('trust proxy', true);
+
+// Swagger docs mounted at /docs with dynamic server URL
 app.use('/docs', swaggerUi.serve, (req, res, next) => {
   const host = req.get('host');           // may or may not include port
-  let protocol = req.protocol;          // http or https
+  let protocol = req.protocol;            // http or https
 
   const actualPort = req.socket.localPort;
   const hasPort = host.includes(':');

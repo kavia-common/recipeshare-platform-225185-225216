@@ -33,6 +33,10 @@ const router = express.Router();
  */
 router.get('/', healthController.check.bind(healthController));
 
+// Configurable health path for platform healthchecks (default handled in server.js too)
+const healthPath = process.env.REACT_APP_HEALTHCHECK_PATH || '/health';
+router.get(healthPath, healthController.check.bind(healthController));
+
 // API routes
 router.use(recipesRouter);
 
