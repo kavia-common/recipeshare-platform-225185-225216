@@ -1,5 +1,13 @@
 require('dotenv').config();
 
+/**
+ * PUBLIC_INTERFACE
+ * Server bootstrap
+ * - Loads Express app (with health routes registered before any middleware).
+ * - If app import fails, creates a minimal fallback app exposing '/', '/health', '/api/health', '/readyz', '/livez'.
+ * - Binds to 0.0.0.0:(PORT||3001) and logs readiness.
+ * - Exports both the server instance and the app for consumers that might import the app for testing.
+ */
 console.log('[startup] Bootstrapping server...');
 let app;
 try {
@@ -71,4 +79,6 @@ process.on('SIGTERM', () => {
   });
 });
 
+// Export both for flexibility (tests may wish to import app, while runtime uses server)
 module.exports = server;
+module.exports.app = app;
