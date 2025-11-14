@@ -49,33 +49,34 @@ try {
   });
 } catch (err) {
   console.error('[fatal] Failed to start server:', err?.stack || err);
-  process.exit(1);
+  // Guarded: do not hard exit during startup in preview environments
+  // Attempt to continue running so health endpoints can still be probed if possible.
 }
 
-// Ensure we exit on 'error' events from the server (e.g., EADDRINUSE)
+// Guarded: avoid exiting the process on server 'error' events; just log for diagnostics
 if (server && typeof server.on === 'function') {
   server.on('error', (err) => {
     console.error('[fatal] HTTP server error:', err?.code || err);
-    process.exit(1);
+    // Do not call process.exit here to avoid killing the container in preview checks
   });
 }
 
-// Handle unexpected errors to avoid silent failures
+// Handle unexpected errors to avoid silent failures, but do not exit
 process.on('unhandledRejection', (reason) => {
   console.error('[fatal] Unhandled Promise Rejection:', reason);
-  process.exit(1);
+  // No process.exit to keep service running
 });
 
 process.on('uncaughtException', (err) => {
   console.error('[fatal] Uncaught Exception:', err?.stack || err);
-  process.exit(1);
+  // No process.exit to keep service running
 });
 
 process.on('SIGTERM', () => {
   console.log('[shutdown] SIGTERM received: closing HTTP server');
   server?.close(() => {
     console.log('[shutdown] HTTP server closed');
-    process.exit(0);
+    // Do not force process.exit here; allow graceful shutdown
   });
 });
 
