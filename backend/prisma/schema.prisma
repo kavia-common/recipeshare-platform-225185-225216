@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String    // hashed
+  image         String?
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  recipes       Recipe[]
+  favorites     Favorite[]
+}
+
+model Recipe {
+  id           String     @id @default(cuid())
+  title        String
+  description  String
+  ingredients  Json
+  instructions Json
+  prepTime     Int
+  cookTime     Int
+  servings     Int
+  difficulty   Difficulty
+  imageUrl     String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  authorId     String
+  author       User       @relation(fields: [authorId], references: [id])
+  favoritedBy  Favorite[]
+
+  @@index([authorId])
+}
+
+model Favorite {
+  id        String  @id @default(cuid())
+  userId    String
+  recipeId  String
+
+  user      User    @relation(fields: [userId], references: [id])
+  recipe    Recipe  @relation(fields: [recipeId], references: [id])
+
+  @@unique([userId, recipeId])
+  @@index([userId])
+  @@index([recipeId])
+}
