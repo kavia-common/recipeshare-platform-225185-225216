@@ -41,6 +41,16 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// PUBLIC_INTERFACE
+app.get('/readyz', (req, res) => {
+  return res.status(200).json({ status: 'ok' });
+});
+
+// PUBLIC_INTERFACE
+app.get('/livez', (req, res) => {
+  return res.status(200).json({ status: 'ok' });
+});
+
 // Core middlewares (registered AFTER health routes)
 app.use(express.json());
 

@@ -11,10 +11,13 @@ const router = express.Router();
  * Health routes are already registered directly in app.js before any middleware.
  */
 
-// Example: in-router health fallback if needed by docs
-router.get('/', healthController.check.bind(healthController));
-router.get('/health', healthController.check.bind(healthController));
+/**
+ * Health routes are already defined in app.js and registered before any middleware.
+ * Keep only explicit fallbacks for /api/health to avoid overriding '/' root handler.
+ */
 router.get('/api/health', healthController.check.bind(healthController));
+router.get('/readyz', (req, res) => res.status(200).json({ status: 'ok' }));
+router.get('/livez', (req, res) => res.status(200).json({ status: 'ok' }));
 
 /**
  * PUBLIC_INTERFACE

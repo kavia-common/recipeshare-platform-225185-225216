@@ -3,7 +3,7 @@
 const express = require('express');
 const multer = require('multer');
 const { z } = require('zod');
-const prismaTs = require('../lib/prisma.ts'); // TypeScript default export transpiles to JS module default
+const prismaTs = require('../lib/prisma.js'); // CommonJS export of Prisma client singleton
 const { uploadImageBuffer } = require('../lib/cloudinary');
 const { authenticate, requireOwnership } = require('../middleware/auth');
 const { supabaseAuthenticate } = require('../middleware/supabaseAuth');
