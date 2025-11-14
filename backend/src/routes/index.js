@@ -1,9 +1,10 @@
 const express = require('express');
 const healthController = require('../controllers/health');
-const recipesRouter = require('./recipes');
+
+// NOTE: recipes router intentionally not required during startup isolation.
+// const recipesRouter = require('./recipes');
 
 const router = express.Router();
-// Health endpoint
 
 /**
  * @swagger
@@ -33,11 +34,10 @@ const router = express.Router();
  */
 router.get('/', healthController.check.bind(healthController));
 
-// Configurable health path for platform healthchecks (default handled in server.js too)
 const healthPath = process.env.REACT_APP_HEALTHCHECK_PATH || '/health';
 router.get(healthPath, healthController.check.bind(healthController));
 
-// API routes
-router.use(recipesRouter);
+// Temporarily bypass recipes mount to isolate startup issues
+// router.use(recipesRouter);
 
 module.exports = router;

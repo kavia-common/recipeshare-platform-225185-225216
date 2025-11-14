@@ -1,66 +1,33 @@
-require('dotenv').config(); // Ensure env variables are loaded for anything using process.env
+require('dotenv').config();
 
-const cors = require('cors');
 const express = require('express');
-const routes = require('./routes');
-const swaggerUi = require('swagger-ui-express');
-const swaggerSpec = require('../swagger');
+const cors = require('cors');
 
-// Initialize express app
-const app = express();
+// Startup diagnostics: log each major stage
+console.log('[startup] Loading app.js...');
+let app;
+try {
+  app = express();
+  console.log('[startup] Express instance created');
+} catch (e) {
+  console.error('[startup] Failed to create Express app', e);
+  throw e;
+}
 
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-app.set('trust proxy', true);
+// Basic, safe middleware only
+try {
+  app.use(cors({ origin: '*', methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'], allowedHeaders: ['Content-Type','Authorization'] }));
+  console.log('[startup] CORS middleware registered');
+  app.set('trust proxy', true);
+  app.use(express.json());
+  console.log('[startup] JSON parser registered');
+} catch (e) {
+  console.error('[startup] Failed registering middleware', e);
+  throw e;
+}
 
-// Swagger docs mounted at /docs with dynamic server URL
-app.use('/docs', swaggerUi.serve, (req, res, next) => {
-  const host = req.get('host');           // may or may not include port
-  let protocol = req.protocol;            // http or https
-
-  const actualPort = req.socket.localPort;
-  const hasPort = host.includes(':');
-  
-  const needsPort =
-    !hasPort &&
-    ((protocol === 'http' && actualPort !== 80) ||
-     (protocol === 'https' && actualPort !== 443));
-  const fullHost = needsPort ? `${host}:${actualPort}` : host;
-  protocol = req.secure ? 'https' : protocol;
-
-  const dynamicSpec = {
-    ...swaggerSpec,
-    servers: [
-      {
-        url: `${protocol}://${fullHost}`,
-      },
-    ],
-  };
-  swaggerUi.setup(dynamicSpec)(req, res, next);
-});
-
-/**
- * PUBLIC_INTERFACE
- * Root route handler - always 200 OK.
- */
-app.get('/', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    message: 'FlavorFolio backend root',
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// Parse JSON request body
-app.use(express.json());
-
-/**
- * PUBLIC_INTERFACE
- * Health route - always 200 OK.
- */
+// PUBLIC_INTERFACE
+// Health route - always returns 200 and never references optional envs
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
@@ -70,16 +37,27 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Mount routes before any fallback handlers
-app.use('/', routes);
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    status: 'error',
-    message: 'Internal Server Error',
+// PUBLIC_INTERFACE
+// Minimal root route for quick smoke test
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'FlavorFolio backend (minimal boot)',
+    timestamp: new Date().toISOString(),
   });
+});
+
+// Temporary: bypass mounting of complex routers (recipes/auth/etc) to isolate startup faults
+// Add diagnostic logs to clarify this is intentional
+console.log('[startup] Skipping recipes router mount temporarily for isolation');
+
+// Optional: Swagger can pull in dynamic requires; skip for now during isolation
+console.log('[startup] Skipping Swagger mounting during isolation');
+
+// Centralized error handler
+app.use((err, req, res, next) => {
+  console.error('[error] Unhandled error middleware caught:', err?.stack || err);
+  res.status(500).json({ status: 'error', message: 'Internal Server Error' });
 });
 
 module.exports = app;

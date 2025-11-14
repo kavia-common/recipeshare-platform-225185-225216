@@ -1,51 +1,50 @@
 {
-    "name": "minimal-express-app",
-    "version": "1.0.0",
-    "description": "Minimal Express app with scalable structure",
-    "main": "src/server.js",
-    "scripts": {
-        "start": "node src/server.js",
-        "dev": "nodemon src/server.js",
-        "test": "jest",
-        "lint": "eslint .",
-        "prisma:generate": "prisma generate"
-    },
-    "dependencies": {
-        "@auth/prisma-adapter": "^1.0.12",
-        "@prisma/client": "^5.19.0",
-        "bcryptjs": "^2.4.3",
-        "cors": "2.8.5",
-        "dotenv": "^16.3.1",
-        "express": "^4.18.2",
-        "next-auth": "^4.24.7",
-        "prisma": "^5.19.0",
-        "swagger-jsdoc": "^6.2.8",
-        "swagger-ui-express": "^5.0.1",
-        "zod": "^3.23.8",
-        "multer": "^1.4.5-lts.1",
-        "cloudinary": "^1.41.3"
-    },
-    "devDependencies": {
-        "eslint": "^9.24.0",
-        "globals": "^16.0.0",
-        "jest": "^29.7.0",
-        "nodemon": "^3.0.1"
-    },
-    "nodemonConfig": {
-        "watch": [
-            "src"
-        ],
-        "ignore": [
-            "node_modules",
-            "package.json",
-            "package-lock.json",
-            "*.lock",
-            "*.log",
-            "*.md",
-            ".git",
-            "dist",
-            "build"
-        ],
-        "ext": "js,json"
-    }
+  "name": "minimal-express-app",
+  "version": "1.0.0",
+  "description": "Minimal Express app with scalable structure",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest",
+    "lint": "eslint .",
+    "prisma:generate": "prisma generate"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^1.0.12",
+    "@prisma/client": "^5.19.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "next-auth": "^4.24.7",
+    "prisma": "^5.19.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^3.23.8",
+    "multer": "^1.4.5-lts.1",
+    "cloudinary": "^1.41.3"
+  },
+  "devDependencies": {
+    "eslint": "^9.24.0",
+    "globals": "^16.0.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1"
+  },
+  "nodemonConfig": {
+    "watch": ["src"],
+    "ignore": [
+      "node_modules",
+      "package.json",
+      "package-lock.json",
+      "*.lock",
+      "*.log",
+      "*.md",
+      ".git",
+      "dist",
+      "build"
+    ],
+    "ext": "js,json"
+  }
 }
