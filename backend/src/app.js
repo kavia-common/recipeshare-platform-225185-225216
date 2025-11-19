@@ -7,10 +7,8 @@ console.log('[startup] Loading app.js...');
 const app = express();
 
 /**
- * PUBLIC_INTERFACE
  * Register synchronous, dependency-free health routes FIRST (no middleware).
  * These routes must not rely on async services or any external dependency to respond.
- * Exposes: '/', '/health', '/api/health', '/readyz', '/livez'
  */
 // PUBLIC_INTERFACE
 app.get('/', (req, res) => {
